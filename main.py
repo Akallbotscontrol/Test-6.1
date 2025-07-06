@@ -1,7 +1,10 @@
 import asyncio
 from client import bot
-from plugins.verify import check_unverified_groups
+# ❌ from plugins.verify import check_unverified_groups  ← Remove this line
 from utils.uptime import notify_if_recent_restart, daily_uptime_report
+from pyrogram import idle
+from flask import Flask
+import threading
 
 # ✅ Bot start block
 async def start_bot():
@@ -13,18 +16,14 @@ async def start_bot():
     # 🔔 Alert if recently restarted
     await notify_if_recent_restart(bot)
 
-    # 🔍 Check unverified groups (if any)
-    await check_unverified_groups(bot)
+    # 🔍 Skip unverified group check (optional)
+    # await check_unverified_groups(bot)
 
     # 🕒 Start daily uptime task
     asyncio.create_task(daily_uptime_report(bot))
 
     # 💤 Idle mode
     await idle()
-
-from pyrogram import idle
-from flask import Flask
-import threading
 
 # 🌐 Mini Flask app for uptime ping
 app = Flask(__name__)
