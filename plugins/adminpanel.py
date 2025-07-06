@@ -1,61 +1,67 @@
 from pyrogram import filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from client import bot
-from plugins.generate import is_logged_in
-from plugins.script import get_spell1, get_spell2, toggle_spell1, toggle_spell2
-from plugins.fsub import toggle_fsub, get_fsub_status
-from utils.helpers import get_user_count, get_group_count
+from config import ADMIN
+from plugins.userc import get_user_count
+from plugins.groupc import get_group_count
+from plugins.fsub import set_fsub_status, get_fsub_status
+from utils.script import get_spell1, get_spell2, set_spell1, set_spell2
 
 @bot.on_message(filters.command("adminpanel") & filters.private)
 async def admin_panel(_, message: Message):
-    if not is_logged_in(message.from_user.id):
-        return await message.reply("🚫 You must /login first.")
+    if message.from_user.id != ADMIN:
+        return await message.reply("🚫 You are not authorized.")
 
-    panel = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📡 Broadcast", callback_data="admin_broadcast")],
-        [InlineKeyboardButton("👤 Users", callback_data="admin_users"),
-         InlineKeyboardButton("👥 Groups", callback_data="admin_groups")],
-        [InlineKeyboardButton(f"🧠 Spell1: {'ON' if get_spell1() else 'OFF'}", callback_data="admin_toggle_spell1"),
-         InlineKeyboardButton(f"🧠 Spell2: {'ON' if get_spell2() else 'OFF'}", callback_data="admin_toggle_spell2")],
-        [InlineKeyboardButton(f"🔁 FSub: {'ON' if get_fsub_status() else 'OFF'}", callback_data="admin_toggle_fsub")],
-        [InlineKeyboardButton("🚪 Logout", callback_data="admin_logout")]
+    fsub = "ON ✅" if get_fsub_status() else "OFF ❌"
+    spell1 = "ON ✅" if get_spell1() else "OFF ❌"
+    spell2 = "ON ✅" if get_spell2() else "OFF ❌"
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(f"🔁 Force Subscribe: {fsub}", callback_data="toggle_fsub")],
+        [InlineKeyboardButton(f"🧠 Spell 1: {spell1}", callback_data="toggle_spell1"),
+         InlineKeyboardButton(f"🧠 Spell 2: {spell2}", callback_data="toggle_spell2")],
+        [InlineKeyboardButton("📊 User Count", callback_data="user_count"),
+         InlineKeyboardButton("👥 Group Count", callback_data="group_count")],
+        [InlineKeyboardButton("📡 Broadcast", callback_data="start_broadcast")],
     ])
 
-    await message.reply("🛠️ **Admin Panel:**", reply_markup=panel)
+    await message.reply_text("⚙️ Admin Control Panel", reply_markup=keyboard)
 
-@bot.on_callback_query(filters.regex(r"^admin_"))
-async def admin_callback(_, query: CallbackQuery):
-    user_id = query.from_user.id
-    if not is_logged_in(user_id):
-        return await query.answer("🚫 Not authorized", show_alert=True)
+# Handle buttons
+@bot.on_callback_query(filters.regex(r"^toggle_"))
+async def toggle_handler(_, query: CallbackQuery):
+    if query.from_user.id != ADMIN:
+        return await query.answer("Access Denied", show_alert=True)
 
-    data = query.data
+    action = query.data
 
-    if data == "admin_users":
-        count = get_user_count()
-        return await query.answer(f"👤 Users: {count}", show_alert=True)
+    if action == "toggle_fsub":
+        current = get_fsub_status()
+        set_fsub_status(not current)
+        await query.answer(f"Force Subscribe {'Enabled' if not current else 'Disabled'} ✅", show_alert=True)
 
-    if data == "admin_groups":
-        count = get_group_count()
-        return await query.answer(f"👥 Groups: {count}", show_alert=True)
+    elif action == "toggle_spell1":
+        current = get_spell1()
+        set_spell1(not current)
+        await query.answer(f"Spell 1 {'Enabled' if not current else 'Disabled'} ✅", show_alert=True)
 
-    if data == "admin_toggle_spell1":
-        toggle_spell1()
-        return await query.answer(f"Spell1 toggled!", show_alert=True)
+    elif action == "toggle_spell2":
+        current = get_spell2()
+        set_spell2(not current)
+        await query.answer(f"Spell 2 {'Enabled' if not current else 'Disabled'} ✅", show_alert=True)
 
-    if data == "admin_toggle_spell2":
-        toggle_spell2()
-        return await query.answer(f"Spell2 toggled!", show_alert=True)
+    await admin_panel(_, query.message)
 
-    if data == "admin_toggle_fsub":
-        toggle_fsub()
-        return await query.answer("FSub toggled!", show_alert=True)
+@bot.on_callback_query(filters.regex("user_count"))
+async def show_user_count(_, query: CallbackQuery):
+    count = await get_user_count()
+    await query.answer(f"Total Users: {count}", show_alert=True)
 
-    if data == "admin_logout":
-        from plugins.generate import LOGGED_IN_USERS
-        LOGGED_IN_USERS.discard(user_id)
-        return await query.answer("Logged out!", show_alert=True)
+@bot.on_callback_query(filters.regex("group_count"))
+async def show_group_count(_, query: CallbackQuery):
+    count = await get_group_count()
+    await query.answer(f"Total Verified Groups: {count}", show_alert=True)
 
-    if data == "admin_broadcast":
-        await query.message.reply("📡 Send the broadcast message now (text only).")
-
+@bot.on_callback_query(filters.regex("start_broadcast"))
+async def start_broadcast(_, query: CallbackQuery):
+    await query.answer("Use /broadcast <message> to start", show_alert=True)
