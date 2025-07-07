@@ -2,8 +2,8 @@ from pyrogram import filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from client import bot
 from config import ADMIN
+from utils.helpers import get_group_count
 from utils.helpers import get_user_count
-from plugins.groupc import get_group_count
 from plugins.fsub import set_fsub_status, get_fsub_status
 from utils.script import get_spell1, get_spell2, set_spell1, set_spell2
 
