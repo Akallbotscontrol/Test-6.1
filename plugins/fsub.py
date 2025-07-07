@@ -2,7 +2,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram import filters
 from client import bot
 from utils.helpers import get_group
-from search import recent_requests
+from plugins.search import recent_requests
 
 # ➕ Check if FSub is enabled for group
 async def is_fsub_enabled(chat_id):
