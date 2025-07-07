@@ -1,7 +1,7 @@
 from pyrogram import filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from client import bot
-from config import FSUB_CHANNEL, ADMIN
+from config import ADMIN
 from utils.helpers import is_subscribed, recent_requests
 from utils.script import set_fsub, is_fsub_enabled
 
