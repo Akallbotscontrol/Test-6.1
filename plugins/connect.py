@@ -4,7 +4,8 @@ from client import bot
 from utils.script import add_connection, remove_connection, list_connections
 from config import ADMIN
 
-@bot.on_message(filters.command("connect"))
+# 🔗 Connect a channel via forwarded message (Admin Only)
+@bot.on_message(filters.command("connect") & filters.user(ADMIN))
 async def connect_channel(_, message: Message):
     if not message.reply_to_message or not message.reply_to_message.forward_from_chat:
         return await message.reply_text("❗ Reply to a forwarded post from the channel you want to connect.")
@@ -13,15 +14,20 @@ async def connect_channel(_, message: Message):
     add_connection(message.from_user.id, channel.id)
     await message.reply_text(f"✅ Connected to `{channel.title}` successfully.")
 
-@bot.on_message(filters.command("disconnect"))
+# ❌ Disconnect all connected channels (Admin Only)
+@bot.on_message(filters.command("disconnect") & filters.user(ADMIN))
 async def disconnect_channel(_, message: Message):
-    removed = remove_connection(message.from_user.id)
-    if removed:
-        await message.reply_text("❎ Disconnected your active connection.")
-    else:
-        await message.reply_text("⚠️ No active channel found to disconnect.")
+    connections = list_connections(message.from_user.id)
+    if not connections:
+        return await message.reply_text("⚠️ No connected channels to disconnect.")
 
-@bot.on_message(filters.command("connections"))
+    for cid in connections:
+        remove_connection(message.from_user.id, cid)
+    
+    await message.reply_text("❎ Disconnected all connected channels.")
+
+# 📋 Show all connected channels (Admin Only)
+@bot.on_message(filters.command("connections") & filters.user(ADMIN))
 async def show_connections(_, message: Message):
     connections = list_connections(message.from_user.id)
     if not connections:
@@ -32,4 +38,3 @@ async def show_connections(_, message: Message):
         text += f"• `{cid}`\n"
     
     await message.reply_text(text)
-  
