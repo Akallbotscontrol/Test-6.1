@@ -1,14 +1,19 @@
 from pyrogram import filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from client import bot
-from utils.helpers import search_posts, recent_requests, force_sub
-from utils.script import get_spell1, get_spell2, save_user
 from config import LOG_CHANNEL
+from utils.script import get_spell1, get_spell2, save_user
+from utils.helpers import save_last_query
+from plugins.fsub import is_fsub_enabled, is_subscribed
+from plugins.generate import search_posts
 from uuid import uuid4
 import math
 
+# 🔁 In-memory cache for paginated search results
 PAGES = {}
+recent_requests = {}
 
+# ⏬ Pagination utility
 def paginate_results(results_list, page=1, per_page=5):
     total = len(results_list)
     total_pages = math.ceil(total / per_page)
@@ -22,21 +27,25 @@ def paginate_results(results_list, page=1, per_page=5):
         "current_page": page
     }
 
+# 🔍 Text Search Handler
 @bot.on_message(filters.private & filters.text & ~filters.command(["start", "help"]))
 async def search_handler(client, message: Message):
     user_id = message.from_user.id
     query = message.text.strip()
-    save_user(user_id)
 
-    # Force Subscribe Check
-    if not await force_sub(bot, message):
-        recent_requests[user_id] = SearchRequest(user_id, query, message)
-        return
+    save_user(user_id)
+    await save_last_query(user_id, message.chat.id, query)
+
+    # 🔒 Force Subscribe
+    if await is_fsub_enabled(message.chat.id):
+        if not await is_subscribed(client, message):
+            recent_requests[user_id] = SearchRequest(user_id, query, message.chat.id)
+            return
+
+    await message.reply_text(f"🔍 Searching for: `{query}`")
 
     spell1 = get_spell1()
     spell2 = get_spell2()
-
-    await message.reply_text(f"🔍 Searching for: `{query}`...")
 
     results = await search_posts(query, spell1=spell1, spell2=spell2)
 
@@ -49,30 +58,29 @@ async def search_handler(client, message: Message):
         if pages["total_pages"] > 1:
             buttons = [
                 [
-                    InlineKeyboardButton("◀️ Previous", callback_data=f"page_{query_id}_0"),
-                    InlineKeyboardButton(f"Page 1/{pages['total_pages']}", callback_data="noop"),
-                    InlineKeyboardButton("▶️ Next", callback_data=f"page_{query_id}_2")
+                    InlineKeyboardButton("◀️", callback_data=f"page_{query_id}_{pages['current_page'] - 1}") if pages["current_page"] > 1 else InlineKeyboardButton("🛑", callback_data="noop"),
+                    InlineKeyboardButton(f"{pages['current_page']} / {pages['total_pages']}", callback_data="noop"),
+                    InlineKeyboardButton("▶️", callback_data=f"page_{query_id}_{pages['current_page'] + 1}")
                 ]
             ]
 
         await message.reply_text(text, reply_markup=InlineKeyboardMarkup(buttons), disable_web_page_preview=True)
         PAGES[query_id] = results
     else:
-        query_enc = query.replace(" ", "+")
         buttons = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔎 Click here to check spelling", url=f"https://www.google.com/search?q={query_enc}")],
-            [InlineKeyboardButton("🗓 Click here to check release date", url=f"https://www.google.com/search?q={query_enc}+release+date")],
-            [InlineKeyboardButton("📩 Request to Admin", callback_data=f"request_upload_{query}")]
+            [InlineKeyboardButton("🔎 Check Spelling", url=f"https://www.google.com/search?q={query}")],
+            [InlineKeyboardButton("🗓 Release Date", url=f"https://www.google.com/search?q={query}+release+date")],
+            [InlineKeyboardButton("📩 Request Upload", callback_data=f"request_upload_{query}")]
         ])
         await message.reply_text(
             f"❗ No results found for: `{query}`\n\n"
-            "❗ Please type **movie name only**.\n"
-            "🔍 You can also check spelling or release date on Google.",
+            "Please type movie name only and check the spelling.",
             reply_markup=buttons
         )
 
+# 📩 Upload request handler
 @bot.on_callback_query(filters.regex(r"request_upload_(.+)"))
-async def handle_upload_request(_, query):
+async def handle_upload_request(_, query: CallbackQuery):
     keyword = query.data.split("_", 2)[2]
     user = query.from_user
 
@@ -83,6 +91,7 @@ async def handle_upload_request(_, query):
     await query.answer("✅ Request sent to admin!", show_alert=True)
     await query.message.edit("📩 Your request has been sent to admin.")
 
+# ⏩ Pagination callback
 @bot.on_callback_query(filters.regex(r"^page_(\w+)_(\d+)$"))
 async def paginate_callback(client, query: CallbackQuery):
     query_id, page = query.matches[0].group(1), int(query.matches[0].group(2))
@@ -93,65 +102,60 @@ async def paginate_callback(client, query: CallbackQuery):
     results = PAGES[query_id]
     pages = paginate_results(results, page=page)
 
-    text = "\n\n".join(pages["page_results"]) + f"\n\n📄 Page {pages['current_page']} of {pages['total_pages']}"
-    nav = []
+    text = "\n\n".join(pages["page_results"]) + f"\n\n📄 Page {page} of {pages['total_pages']}"
 
+    buttons = []
     if pages["total_pages"] > 1:
-        btns = []
+        buttons = [
+            [
+                InlineKeyboardButton("◀️", callback_data=f"page_{query_id}_{page - 1}") if page > 1 else InlineKeyboardButton("🛑", callback_data="noop"),
+                InlineKeyboardButton(f"{page} / {pages['total_pages']}", callback_data="noop"),
+                InlineKeyboardButton("▶️", callback_data=f"page_{query_id}_{page + 1}") if page < pages['total_pages'] else InlineKeyboardButton("🛑", callback_data="noop")
+            ]
+        ]
 
-        if page > 1:
-            btns.append(InlineKeyboardButton("◀️ Previous", callback_data=f"page_{query_id}_{page - 1}"))
-        btns.append(InlineKeyboardButton(f"Page {page}/{pages['total_pages']}", callback_data="noop"))
-        if page < pages["total_pages"]:
-            btns.append(InlineKeyboardButton("▶️ Next", callback_data=f"page_{query_id}_{page + 1}"))
-
-        nav.append(btns)
-
-    await query.message.reply_text(
-        text,
-        reply_markup=InlineKeyboardMarkup(nav),
-        disable_web_page_preview=True
-    )
+    await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(buttons), disable_web_page_preview=True)
     await query.answer()
 
+# 🔄 Retry system after FSub
 class SearchRequest:
-    def __init__(self, user_id, query, message):
+    def __init__(self, user_id, query, chat_id):
         self.user_id = user_id
         self.query = query
-        self.message = message
+        self.chat_id = chat_id
 
     async def continue_search(self):
         spell1 = get_spell1()
         spell2 = get_spell2()
+        await bot.send_message(self.user_id, f"🔍 Searching for: `{self.query}`")
         results = await search_posts(self.query, spell1=spell1, spell2=spell2)
 
         if results:
             query_id = str(uuid4())[:8]
             pages = paginate_results(results, page=1)
             text = "\n\n".join(pages["page_results"]) + f"\n\n📄 Page 1 of {pages['total_pages']}"
-            buttons = []
 
+            buttons = []
             if pages["total_pages"] > 1:
                 buttons = [
                     [
-                        InlineKeyboardButton("◀️ Previous", callback_data=f"page_{query_id}_0"),
-                        InlineKeyboardButton(f"Page 1/{pages['total_pages']}", callback_data="noop"),
-                        InlineKeyboardButton("▶️ Next", callback_data=f"page_{query_id}_2")
+                        InlineKeyboardButton("◀️", callback_data=f"page_{query_id}_{pages['current_page'] - 1}"),
+                        InlineKeyboardButton(f"{pages['current_page']} / {pages['total_pages']}", callback_data="noop"),
+                        InlineKeyboardButton("▶️", callback_data=f"page_{query_id}_{pages['current_page'] + 1}")
                     ]
                 ]
+
             await bot.send_message(self.user_id, text, reply_markup=InlineKeyboardMarkup(buttons), disable_web_page_preview=True)
             PAGES[query_id] = results
         else:
-            query_enc = self.query.replace(" ", "+")
             buttons = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔎 Click here to check spelling", url=f"https://www.google.com/search?q={query_enc}")],
-                [InlineKeyboardButton("🗓 Click here to check release date", url=f"https://www.google.com/search?q={query_enc}+release+date")],
-                [InlineKeyboardButton("📩 Request to Admin", callback_data=f"request_upload_{self.query}")]
+                [InlineKeyboardButton("🔎 Check Spelling", url=f"https://www.google.com/search?q={self.query}")],
+                [InlineKeyboardButton("🗓 Release Date", url=f"https://www.google.com/search?q={self.query}+release+date")],
+                [InlineKeyboardButton("📩 Request Upload", callback_data=f"request_upload_{self.query}")]
             ])
             await bot.send_message(
                 self.user_id,
                 f"❗ No results found for: `{self.query}`\n\n"
-                "❗ Please type **movie name only**.\n"
-                "🔍 You can also check spelling or release date on Google.",
+                "Please type movie name only and check the spelling.",
                 reply_markup=buttons
             )
