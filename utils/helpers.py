@@ -39,6 +39,14 @@ async def update_group(id, new_data):
 async def delete_group(id):
     await grp_col.delete_one({"_id": id})
 
+async def get_group_count():
+    return await grp_col.count_documents({})
+
+async def get_groups():
+    count = await grp_col.count_documents({})
+    groups = await grp_col.find({}).to_list(length=count)
+    return count, groups
+
 # ➤ User Functions
 async def add_user(id, name):
     try:
@@ -46,19 +54,16 @@ async def add_user(id, name):
     except DuplicateKeyError:
         pass
 
+async def delete_user(id):
+    await user_col.delete_one({"_id": id})
+
+async def get_user_count():
+    return await user_col.count_documents({})
+
 async def get_users():
     count = await user_col.count_documents({})
     users = await user_col.find({}).to_list(length=count)
     return count, users
-
-async def delete_user(id):
-    await user_col.delete_one({"_id": id})
-
-# ➤ Get All Groups
-async def get_groups():
-    count = await grp_col.count_documents({})
-    groups = await grp_col.find({}).to_list(length=count)
-    return count, groups
 
 # ➤ Last Search Query Save (For Try Again Feature)
 async def save_last_query(user_id, chat_id, query):
@@ -75,10 +80,15 @@ async def get_last_query(user_id, chat_id):
 # ➤ Force Subscribe Check
 async def force_sub(bot, message):
     group = await get_group(message.chat.id)
+    if not group:
+        return True
+
     f_sub = group.get("f_sub", False)
     admin = group.get("user_id")
+
     if not f_sub or not message.from_user:
         return True
+
     try:
         f_link = (await bot.get_chat(f_sub)).invite_link
         member = await bot.get_chat_member(f_sub, message.from_user.id)
@@ -91,7 +101,11 @@ async def force_sub(bot, message):
     except UserNotParticipant:
         pass
     except Exception as e:
-        await bot.send_message(admin, f"❌ Error in force_sub:\n`{str(e)}`")
+        if admin:
+            try:
+                await bot.send_message(admin, f"❌ Error in force_sub:\n`{str(e)}`")
+            except:
+                pass
         return False
 
     try:
@@ -105,4 +119,3 @@ async def force_sub(bot, message):
     except:
         pass
     return False
-  
