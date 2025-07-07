@@ -1,6 +1,6 @@
 import asyncio
 from config import DATABASE_URI
-from pyrogram import enums
+from pyrogram import enums, Client
 from pymongo.errors import DuplicateKeyError
 from pyrogram.errors import UserNotParticipant
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -77,7 +77,17 @@ async def get_last_query(user_id, chat_id):
     record = await query_col.find_one({"_id": f"{chat_id}_{user_id}"})
     return record["query"] if record else None
 
-# ➤ Force Subscribe Check
+# ✅ Force Subscribe Status Check (for any channel)
+async def is_subscribed(user_id: int, channel: str) -> bool:
+    try:
+        member = await Client.get_chat_member(Client, chat_id=channel, user_id=user_id)
+        return member.status in ["member", "administrator", "creator"]
+    except UserNotParticipant:
+        return False
+    except:
+        return False
+
+# ➤ Force Subscribe Check (used in main handler)
 async def force_sub(bot, message):
     group = await get_group(message.chat.id)
     if not group:
