@@ -1,40 +1,54 @@
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram import filters
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from client import bot
-from config import ADMIN
-from utils.helpers import is_subscribed, recent_requests
-from utils.script import set_fsub_status, get_fsub_status
+from utils.helpers import get_group
+from search import recent_requests
 
-# ✅ Admin command: enable force subscribe (group-specific)
-@bot.on_message(filters.command("fsub") & filters.group & filters.user(ADMIN))
-async def enable_fsub(_, msg: Message):
-    await set_fsub_status(msg.chat.id, True)
-    await msg.reply_text("✅ Force Subscribe is now ENABLED for this group.")
+# ➕ Check if FSub is enabled for group
+async def is_fsub_enabled(chat_id):
+    group = await get_group(chat_id)
+    return group and group.get("f_sub")
 
-# ❌ Admin command: disable force subscribe (group-specific)
-@bot.on_message(filters.command("nofsub") & filters.group & filters.user(ADMIN))
-async def disable_fsub(_, msg: Message):
-    await set_fsub_status(msg.chat.id, False)
-    await msg.reply_text("❌ Force Subscribe is now DISABLED for this group.")
+# ✅ Check if user is subscribed
+async def is_subscribed(bot, message):
+    group = await get_group(message.chat.id)
+    if not group:
+        return True
 
-# 🔄 "✅ I Joined" button clicked by user
-@bot.on_callback_query(filters.regex("force_check"))
-async def fsub_recheck(_, query: CallbackQuery):
-    user = query.from_user
-    if await is_subscribed(user.id):
-        req = recent_requests.get(user.id)
-        if req:
-            del recent_requests[user.id]
-            await query.message.edit("✅ Verified. Please wait...")
+    fsub = group.get("f_sub")
+    if not fsub or not message.from_user:
+        return True
 
-            # ⏳ Show "Searching for..." before actual result
-            await bot.send_message(
-                chat_id=user.id,
-                text=f"🔍 Searching for: `{req.query}`..."
-            )
+    try:
+        member = await bot.get_chat_member(fsub, message.from_user.id)
+        return member.status in ("member", "administrator", "creator")
+    except:
+        pass
 
-            await req.continue_search()
-        else:
-            await query.message.edit("✅ You have joined. Try again.")
+    try:
+        invite_link = (await bot.get_chat(fsub)).invite_link
+    except:
+        invite_link = f"https://t.me/{fsub.lstrip('@')}"
+
+    await message.reply_text(
+        f"🔐 Hello {message.from_user.mention}, to use this bot you must join our channel first!",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("📢 Join Channel", url=invite_link)],
+            [InlineKeyboardButton("🔄 Try Again", callback_data=f"checksub_{message.from_user.id}")]
+        ])
+    )
+    return False
+
+# 🔁 Retry handler
+@bot.on_callback_query(filters.regex("checksub_(\\d+)"))
+async def retry_after_join(client, query):
+    user_id = int(query.matches[0].group(1))
+    if user_id != query.from_user.id:
+        return await query.answer("⚠️ This button is not for you!", show_alert=True)
+
+    if user_id in recent_requests:
+        await recent_requests[user_id].continue_search()
+        await query.message.delete()
+        del recent_requests[user_id]
     else:
-        await query.answer("❌ You must join the updates channel first!", show_alert=True)
+        await query.answer("⏳ No pending search request found.", show_alert=True)
