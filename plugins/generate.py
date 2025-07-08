@@ -1,3 +1,4 @@
+# plugins/generate.py
 
 import traceback
 from pyrogram.types import Message
@@ -86,7 +87,7 @@ async def main(bot: Client, message: Message):
     string_session = await client.export_session_string()
     await client.disconnect()
     if len(string_session) < SESSION_STRING_SIZE:
-        return await message.reply('<b>invalid session sring</b>')
+        return await message.reply('<b>invalid session string</b>')
     try:
         user_data = database.find_one({"chat_id": message.from_user.id})
         if user_data is not None:
@@ -102,3 +103,17 @@ async def main(bot: Client, message: Message):
     except Exception as e:
         return await message.reply_text(f"<b>ERROR IN LOGIN:</b> `{e}`")
     await bot.send_message(message.from_user.id, "<b>Account Login Successfully.\n\nIf You Get Any Error Related To AUTH KEY Then /logout and /login again</b>")
+
+# ✅ search_posts function added (required by search.py)
+async def search_posts(query, spell1=True, spell2=True):
+    # Dummy version – You can connect this to your MongoDB channel post search later
+    results = [
+        f"🔹 Found result 1 for: {query}",
+        f"🔹 Found result 2 for: {query}",
+        f"🔹 Found result 3 for: {query}",
+        f"🔹 Found result 4 for: {query}",
+        f"🔹 Found result 5 for: {query}",
+        f"🔹 Found result 6 for: {query}",
+        f"🔹 Found result 7 for: {query}",
+    ]
+    return results
