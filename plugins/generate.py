@@ -12,7 +12,7 @@ from pyrogram.errors import (
     SessionPasswordNeeded,
     PasswordHashInvalid
 )
-from info import API_ID, API_HASH, DATABASE_URI, ADMIN
+from config import API_ID, API_HASH, DATABASE_URI, ADMIN
 from pymongo import MongoClient
 
 mongo_client = MongoClient(DATABASE_URI)
