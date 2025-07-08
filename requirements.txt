@@ -13,3 +13,4 @@ pyspellchecker==0.7.0
 # Optional SpellChecker 2 (for /spell2)
 fuzzywuzzy==0.18.0
 python-Levenshtein==0.21.1
+apscheduler==3.10.4
