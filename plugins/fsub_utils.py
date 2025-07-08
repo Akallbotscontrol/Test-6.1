@@ -1,9 +1,9 @@
 # plugins/fsub_utils.py
 
-from config import FORCE_SUB_CHANNEL
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import UserNotParticipant
 
-# 🔘 Check if Force Sub is enabled
+# 🔘 Check if Force Sub is enabled for the chat
 async def is_fsub_enabled(chat_id):
     from utils.helpers import get_group
     group = await get_group(chat_id)
