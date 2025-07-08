@@ -1,5 +1,5 @@
 from config import LOG_CHANNEL
-from utils import add_group
+from utils.helpers import add_group
 from asyncio import sleep
 from pyrogram import Client, filters
 
