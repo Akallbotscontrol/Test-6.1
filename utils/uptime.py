@@ -1,17 +1,13 @@
+import os
 import time
-import logging
 from datetime import datetime
 from config import LOG_CHANNEL
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# Logging setup
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-
-# Track bot start time
+# Track start time
 start_time = time.time()
 
-# ⏱️ Format uptime into human-readable string
+# ⏱️ Format uptime
 def get_readable_uptime():
     uptime = time.time() - start_time
     days, remainder = divmod(int(uptime), 86400)
@@ -19,35 +15,29 @@ def get_readable_uptime():
     minutes, seconds = divmod(remainder, 60)
     return f"{days}d {hours}h {minutes}m {seconds}s"
 
-# 🔄 Notify when bot restarts
+# 🔁 Notify restart
 async def notify_if_recent_restart(bot):
     try:
-        uptime = get_readable_uptime()
-        msg = (
-            f"🔄 Bot Restarted\n"
-            f"🕒 Uptime: `{uptime}`\n"
-            f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
-        await bot.send_message(LOG_CHANNEL, msg, disable_web_page_preview=True)
-        logger.info("✅ Restart notification sent.")
-    except Exception as e:
-        logger.warning(f"[!] Failed to notify restart: {e}")
+        # 👇 Force peer resolve to avoid Peer ID errors
+        await bot.get_chat(LOG_CHANNEL)
 
-# 📊 Send daily uptime report (every day at 12:00 AM)
+        uptime = get_readable_uptime()
+        msg = f"🔄 Bot Restarted\n🕒 Uptime: `{uptime}`\n📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        await bot.send_message(LOG_CHANNEL, msg)
+    except Exception as e:
+        print(f"[!] Failed to notify restart: {e}")
+
+# 📅 Daily uptime report
 async def daily_uptime_report(bot):
     async def send_report():
         try:
+            await bot.get_chat(LOG_CHANNEL)  # 👈 Ensure peer is resolved
             uptime = get_readable_uptime()
-            msg = (
-                f"📊 Daily Uptime Report\n"
-                f"🟢 Uptime: `{uptime}`\n"
-                f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            )
-            await bot.send_message(LOG_CHANNEL, msg, disable_web_page_preview=True)
-            logger.info("✅ Daily uptime report sent.")
+            msg = f"📊 Daily Uptime Report\n🟢 Uptime: `{uptime}`\n📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            await bot.send_message(LOG_CHANNEL, msg)
         except Exception as e:
-            logger.warning(f"[!] Failed to send daily report: {e}")
+            print(f"[!] Failed to send daily report: {e}")
 
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(send_report, "cron", hour=0, minute=0)  # Every day at midnight
+    scheduler.add_job(send_report, "cron", hour=0, minute=0)  # Daily at 12:00 AM
     scheduler.start()
