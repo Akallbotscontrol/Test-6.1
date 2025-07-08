@@ -1,31 +1,42 @@
+import os
 import time
-import asyncio
-from datetime import timedelta, datetime
+from datetime import datetime
 from config import LOG_CHANNEL
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# Bot launch time
-START_TIME = time.time()
+# Track start time
+start_time = time.time()
 
-# 🔁 1. Alert if bot restarts unexpectedly (uptime < 5 min)
+
+# ⏱️ Format uptime
+def get_readable_uptime():
+    uptime = time.time() - start_time
+    days, remainder = divmod(int(uptime), 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{days}d {hours}h {minutes}m {seconds}s"
+
+
+# 🔁 Notify restart
 async def notify_if_recent_restart(bot):
-    uptime = time.time() - START_TIME
-    if uptime < 300:
-        await bot.send_message(
-            LOG_CHANNEL,
-            f"🚨 Bot Restart Detected\n⏱️ Current Uptime: {int(uptime)} seconds\n"
-            "⚠️ Check if this was expected."
-        )
+    try:
+        uptime = get_readable_uptime()
+        msg = f"🔄 Bot Restarted\n🕒 Uptime: `{uptime}`\n📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        await bot.send_message(LOG_CHANNEL, msg)
+    except Exception as e:
+        print(f"[!] Failed to notify restart: {e}")
 
-# 📆 2. Daily Uptime Summary at 9:00 AM IST
+
+# 📅 Daily uptime report
 async def daily_uptime_report(bot):
-    while True:
-        now = datetime.now()
-        if now.hour == 9 and now.minute == 0:
-            uptime = str(timedelta(seconds=int(time.time() - START_TIME)))
-            await bot.send_message(
-                LOG_CHANNEL,
-                f"🕒 Daily Uptime Report\nUptime: `{uptime}`"
-            )
-            await asyncio.sleep(60)  # Avoid duplicate
-        await asyncio.sleep(30)
-      
+    async def send_report():
+        try:
+            uptime = get_readable_uptime()
+            msg = f"📊 Daily Uptime Report\n🟢 Uptime: `{uptime}`\n📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            await bot.send_message(LOG_CHANNEL, msg)
+        except Exception as e:
+            print(f"[!] Failed to send daily report: {e}")
+
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(send_report, "cron", hour=0, minute=0)  # Daily at 12:00 AM
+    scheduler.start()
