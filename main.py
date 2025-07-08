@@ -14,7 +14,7 @@ def home():
 
 # 🚀 Start Flask in a separate thread
 def run_flask():
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=8080)  # ✅ Use port 8080 for Render
 
 # 🤖 Start Bot
 async def start_bot():
