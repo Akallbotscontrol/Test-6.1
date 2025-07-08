@@ -1,7 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineQueryResultArticle, InputTextMessageContent, InlineQuery
 from utils.script import get_spell1, get_spell2
-from utils.helpers import search_posts
+from plugins.generate import search_posts
 from uuid import uuid4
 
 @Client.on_inline_query()
