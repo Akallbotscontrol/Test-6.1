@@ -16,21 +16,29 @@ from pyrogram.errors import (
 from config import API_ID, API_HASH, DATABASE_URI, ADMIN
 from pymongo import MongoClient
 
+# 📦 MongoDB Setup
 mongo_client = MongoClient(DATABASE_URI)
 database = mongo_client.userdb.sessions
 
+# 🔍 Channel Posts Collection
+post_db = mongo_client["Channel-Filter"]
+POSTS = post_db["posts"]
+
+# 📄 Static Strings
 strings = {
     'need_login': "U have to /login before using then bot can download restricted content ❕",
     'already_logged_in': "You are already logged in.\nIf you want to login again, /logout to proceed.",
 }
 SESSION_STRING_SIZE = 351
 
+# 🔎 Safe Getter
 def get(obj, key, default=None):
     try:
         return obj[key]
     except:
         return default
 
+# 🔓 /logout
 @Client.on_message(filters.private & filters.command(["logout"]) & filters.user(ADMIN))
 async def logout(_, msg):
     user_data = database.find_one({"chat_id": msg.chat.id})
@@ -43,6 +51,7 @@ async def logout(_, msg):
     database.update_one({'_id': user_data['_id']}, {'$set': data})
     await msg.reply("**Logout Successfully** ♦")
 
+# 🔐 /login system
 @Client.on_message(filters.private & filters.command(["login"]) & filters.user(ADMIN))
 async def main(bot: Client, message: Message):
     user_data = database.find_one({"chat_id": message.from_user.id})
@@ -51,20 +60,29 @@ async def main(bot: Client, message: Message):
         return 
     user_id = int(message.from_user.id)
     phone_number_msg = await bot.ask(chat_id=user_id, text="<b>Please send your phone number which includes country code</b>\n<b>Example:</b> <code>+13124562345, +9171828181889</code>")
-    if phone_number_msg.text=='/cancel':
+    if phone_number_msg.text == '/cancel':
         return await phone_number_msg.reply('<b>process cancelled !</b>')
+    
     phone_number = phone_number_msg.text
     client = Client(":memory:", API_ID, API_HASH)
     await client.connect()
     await phone_number_msg.reply("Sending OTP...")
+    
     try:
         code = await client.send_code(phone_number)
-        phone_code_msg = await bot.ask(user_id, "Please check for an OTP in official telegram account. If you got it, send OTP here after reading the below format. \n\nIf OTP is `12345`, **please send it as** `1 2 3 4 5`.\n\n**Enter /cancel to cancel The Procces**", filters=filters.text, timeout=600)
+        phone_code_msg = await bot.ask(
+            user_id,
+            "Please check for an OTP in official telegram account. If you got it, send OTP here after reading the below format. \n\nIf OTP is `12345`, **please send it as** `1 2 3 4 5`.\n\n**Enter /cancel to cancel The Process**",
+            filters=filters.text,
+            timeout=600
+        )
     except PhoneNumberInvalid:
         await phone_number_msg.reply('`PHONE_NUMBER` **is invalid.**')
         return
-    if phone_code_msg.text=='/cancel':
+    
+    if phone_code_msg.text == '/cancel':
         return await phone_code_msg.reply('<b>process cancelled !</b>')
+
     try:
         phone_code = phone_code_msg.text.replace(" ", "")
         await client.sign_in(phone_number, code.phone_code_hash, phone_code)
@@ -75,8 +93,13 @@ async def main(bot: Client, message: Message):
         await phone_code_msg.reply('**OTP is expired.**')
         return
     except SessionPasswordNeeded:
-        two_step_msg = await bot.ask(user_id, '**Your account has enabled two-step verification. Please provide the password.\n\nEnter /cancel to cancel The Procces**', filters=filters.text, timeout=300)
-        if two_step_msg.text=='/cancel':
+        two_step_msg = await bot.ask(
+            user_id,
+            '**Your account has enabled two-step verification. Please provide the password.\n\nEnter /cancel to cancel The Process**',
+            filters=filters.text,
+            timeout=300
+        )
+        if two_step_msg.text == '/cancel':
             return await two_step_msg.reply('<b>process cancelled !</b>')
         try:
             password = two_step_msg.text
@@ -84,10 +107,13 @@ async def main(bot: Client, message: Message):
         except PasswordHashInvalid:
             await two_step_msg.reply('**Invalid Password Provided**')
             return
+
     string_session = await client.export_session_string()
     await client.disconnect()
+
     if len(string_session) < SESSION_STRING_SIZE:
         return await message.reply('<b>invalid session string</b>')
+
     try:
         user_data = database.find_one({"chat_id": message.from_user.id})
         if user_data is not None:
@@ -102,18 +128,28 @@ async def main(bot: Client, message: Message):
             database.update_one({'_id': user_data['_id']}, {'$set': data})
     except Exception as e:
         return await message.reply_text(f"<b>ERROR IN LOGIN:</b> `{e}`")
-    await bot.send_message(message.from_user.id, "<b>Account Login Successfully.\n\nIf You Get Any Error Related To AUTH KEY Then /logout and /login again</b>")
 
-# ✅ search_posts function added (required by search.py)
+    await bot.send_message(
+        message.from_user.id,
+        "<b>Account Login Successfully.\n\nIf You Get Any Error Related To AUTH KEY Then /logout and /login again</b>"
+    )
+
+# 🔍 Real Channel Post Search
 async def search_posts(query, spell1=True, spell2=True):
-    # Dummy version – You can connect this to your MongoDB channel post search later
-    results = [
-        f"🔹 Found result 1 for: {query}",
-        f"🔹 Found result 2 for: {query}",
-        f"🔹 Found result 3 for: {query}",
-        f"🔹 Found result 4 for: {query}",
-        f"🔹 Found result 5 for: {query}",
-        f"🔹 Found result 6 for: {query}",
-        f"🔹 Found result 7 for: {query}",
-    ]
+    results = []
+    regex = {"$regex": query, "$options": "i"}
+
+    async for post in POSTS.find({"title": regex}).limit(50):
+        title = post.get("title", "No Title")
+        chat_id = post.get("chat_id")
+        message_id = post.get("message_id")
+
+        if chat_id and message_id:
+            # 🧠 create t.me/c/... link from internal ID
+            link = f"https://t.me/c/{str(chat_id)[4:]}/{message_id}" if str(chat_id).startswith("-100") else f"https://t.me/{chat_id}/{message_id}"
+        else:
+            link = post.get("link", "No Link")
+
+        results.append(f"🎬 <b>{title}</b>\n📥 <a href='{link}'>View Post</a>")
+    
     return results
