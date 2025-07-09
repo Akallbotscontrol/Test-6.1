@@ -4,6 +4,9 @@ from plugins.generate import database
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+print("✅ misc.py loaded")
+
+
 @bot.on_message(filters.command("start") & ~filters.channel)
 async def start(bot, message):
     database.insert_one({"chat_id": message.from_user.id})
