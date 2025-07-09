@@ -10,27 +10,40 @@ app = Flask(__name__)
 def home():
     return "🤖 Bot is running!"
 
+# 🧵 Run Flask in a separate thread
 def run_flask():
     app.run(host="0.0.0.0", port=8080)
 
-# Idle for Pyrogram v2.x
+# 💤 Async Idle Loop for Pyrogram
 async def idle():
     try:
         while True:
             await asyncio.sleep(1)
     except (KeyboardInterrupt, SystemExit):
-        pass
+        print("🛑 Gracefully shutting down...")
 
+# 🚀 Start Everything
 async def start_all():
     print("🔁 Starting Bot...")
     await bot.start()
     print("✅ Bot Started Successfully!")
+
+    # 🔄 Notify restart to log channel
     await notify_if_recent_restart(bot)
+
+    # 🕛 Schedule daily uptime
     asyncio.create_task(daily_uptime_report(bot))
-    idle_thread = threading.Thread(target=run_flask)
-    idle_thread.start()
+
+    # 🌐 Start Flask app in background thread
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+
+    # ⏳ Keep the bot running
     await idle()
-    print("🛑 Bot Stopped")
 
 if __name__ == "__main__":
-    asyncio.run(start_all())
+    try:
+        asyncio.run(start_all())
+    except (KeyboardInterrupt, SystemExit):
+        print("🛑 Bot stopped manually.")
