@@ -3,7 +3,6 @@ from flask import Flask
 from threading import Thread
 from client import bot
 from utils.uptime import notify_if_recent_restart, daily_uptime_report
-from pyrogram.idle import idle
 
 app = Flask(__name__)
 
@@ -14,6 +13,14 @@ def home():
 def run_flask():
     app.run(host="0.0.0.0", port=8080)
 
+# Manual idle loop for Pyrogram 2.x
+async def idle():
+    try:
+        while True:
+            await asyncio.sleep(1)
+    except (KeyboardInterrupt, SystemExit):
+        pass
+
 async def start_all():
     print("🔁 Starting Bot...")
 
@@ -21,15 +28,11 @@ async def start_all():
     print("✅ Bot Started Successfully!")
 
     await notify_if_recent_restart(bot)
-    asyncio.create_task(daily_uptime_report(bot))  # Schedule uptime check
+    asyncio.create_task(daily_uptime_report(bot))  # Scheduler
 
     await idle()
     print("🛑 Bot Stopped")
 
 if __name__ == "__main__":
-    # Start Flask in a separate thread
     Thread(target=run_flask).start()
-
-    # Start the bot in the main thread loop
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(start_all())
+    asyncio.run(start_all())
