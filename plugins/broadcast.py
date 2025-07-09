@@ -6,24 +6,24 @@ from pymongo import MongoClient
 from pyrogram.errors import PeerIdInvalid, UserIsBlocked, InputUserDeactivated, FloodWait
 import asyncio
 
+# 🔗 MongoDB
 mongo = MongoClient(DATABASE_URI)
 user_collection = mongo.userdb.users
 
-# ✅ Broadcast command
+# 📡 Broadcast Command (reply or direct)
 @bot.on_message(filters.command("broadcast") & filters.user(ADMIN))
 async def broadcast(_, message: Message):
+    # 📎 Check input
     if not message.reply_to_message and len(message.command) < 2:
-        return await message.reply("📌 Reply to a message or use `/broadcast your message here`")
+        return await message.reply("📌 Use `/broadcast your message here` or reply to a message.")
 
-    if message.reply_to_message:
-        content = message.reply_to_message
-    else:
-        content = message.text.split(" ", 1)[1]
+    content = message.reply_to_message if message.reply_to_message else message.text.split(" ", 1)[1]
 
-    sent, failed = 0, 0
-    users = user_collection.find()
-
+    sent = 0
+    failed = 0
     await message.reply("📡 Broadcast started...")
+
+    users = user_collection.find()
 
     for user in users:
         user_id = user.get("user_id")
@@ -42,12 +42,9 @@ async def broadcast(_, message: Message):
             await asyncio.sleep(e.value)
         except Exception:
             failed += 1
-            continue
-
         await asyncio.sleep(0.1)
 
     await message.reply_text(
         f"✅ Broadcast completed!\n\n"
         f"📤 Sent: {sent}\n❌ Failed: {failed}"
     )
-  
