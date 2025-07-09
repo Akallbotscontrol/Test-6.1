@@ -1,3 +1,11 @@
+from pyrogram import filters
+from client import bot
+from config import LOG_CHANNEL
+
+@bot.on_message(filters.command("ping"))
+async def ping(client, message):
+    await message.reply("🏓 Pong!")
+
 @bot.on_message(filters.command("testlog"))
 async def test_log_channel(client, message):
     try:
