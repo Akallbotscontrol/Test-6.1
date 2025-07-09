@@ -5,6 +5,8 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, 
 from client import bot
 from config import LOG_CHANNEL
 from utils.script import get_spell1, get_spell2, save_user
+# plugins/search.py
+from utils.recent import recent_requests
 from utils.helpers import save_last_query
 from plugins.fsub_utils import is_fsub_enabled, is_subscribed  # ✅ now from fsub_utils
 from plugins.generate import search_posts
