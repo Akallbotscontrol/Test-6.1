@@ -12,6 +12,8 @@ from plugins.generate import search_posts
 from uuid import uuid4
 import math
 
+print("✅ search.py loaded")
+
 PAGES = {}
 
 def paginate_results(results_list, page=1, per_page=5):
