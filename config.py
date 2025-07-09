@@ -6,5 +6,5 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "7490778826:AAHQocs5ICH4SsMdBfvbS1eAB52F
 SUPPORT = os.environ.get("SUPPORT", "https://t.me/RMCBACKUP")
 DATABASE_URI = os.environ.get("DATABASE_URI", "mongodb+srv://RMCFILTERBOT:RMCFILTERBOT@rmcfilterbot.bm5g1.mongodb.net/?retryWrites=true&w=majority&appName=RMCFILTERBOT")
 ADMIN = int(os.environ.get("ADMIN", "7037505654"))
-LOG_CHANNEL = -1002273915928
+LOG_CHANNEL = -1002812115749
 
