@@ -3,6 +3,7 @@ import threading
 from flask import Flask
 from client import bot
 from utils.uptime import daily_uptime_report  # removed: notify_if_recent_restart
+from plugins import *  # 👈 load all plugin files like search.py, misc.py, etc.
 
 app = Flask(__name__)
 
