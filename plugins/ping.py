@@ -1,6 +1,7 @@
-from pyrogram import filters
-from client import bot
-
-@bot.on_message(filters.command("ping"))
-async def ping(client, message):
-    await message.reply_text("🏓 Pong! I am alive.")
+@bot.on_message(filters.command("testlog"))
+async def test_log_channel(client, message):
+    try:
+        await client.send_message(LOG_CHANNEL, "🧪 Test message to log channel.")
+        await message.reply("✅ Test message sent to log channel.")
+    except Exception as e:
+        await message.reply(f"❌ Failed to send log: `{e}`")
