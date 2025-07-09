@@ -5,18 +5,14 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, 
 from client import bot
 from config import LOG_CHANNEL
 from utils.script import get_spell1, get_spell2, save_user
-# plugins/search.py
-
+from utils.helpers import save_last_query
 from utils.recent import recent_requests
-from utils.helpers import save_last_query  # now this works fine
-
-from plugins.fsub_utils import is_fsub_enabled, is_subscribed  # ✅ now from fsub_utils
+from plugins.fsub_utils import is_fsub_enabled, is_subscribed
 from plugins.generate import search_posts
 from uuid import uuid4
 import math
 
 PAGES = {}
-recent_requests = {}
 
 def paginate_results(results_list, page=1, per_page=5):
     total = len(results_list)
