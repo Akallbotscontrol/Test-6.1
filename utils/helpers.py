@@ -5,6 +5,9 @@ from pyrogram import Client, enums
 from pyrogram.errors import UserNotParticipant, ChatAdminRequired, ChannelInvalid
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pymongo.errors import DuplicateKeyError
+# utils/helpers.py
+from utils.recent import recent_requests
+# Remove: from plugins.search import recent_requests
 
 from client import bot
 from plugins.search import recent_requests
