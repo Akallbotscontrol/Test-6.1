@@ -5,7 +5,8 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # ✅ Install system dependencies
-RUN apt update && apt install -y gcc libffi-dev curl git && \
+RUN apt update && \
+    apt install -y gcc libffi-dev curl git && \
     apt clean && rm -rf /var/lib/apt/lists/*
 
 # ✅ Copy all files
