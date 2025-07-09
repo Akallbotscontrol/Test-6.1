@@ -2,7 +2,7 @@ import asyncio
 import threading
 from flask import Flask
 from client import bot
-from utils.uptime import notify_if_recent_restart, daily_uptime_report
+from utils.uptime import daily_uptime_report  # removed: notify_if_recent_restart
 
 app = Flask(__name__)
 
@@ -28,8 +28,7 @@ async def start_all():
     await bot.start()
     print("✅ Bot Started Successfully!")
 
-    # 🔄 Notify restart to log channel
-    await notify_if_recent_restart(bot)
+    # ❌ Removed: notify_if_recent_restart(bot)
 
     # 🕛 Schedule daily uptime
     asyncio.create_task(daily_uptime_report(bot))
