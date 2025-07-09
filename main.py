@@ -2,9 +2,25 @@ import asyncio
 import threading
 from flask import Flask
 from client import bot
-from utils.uptime import daily_uptime_report  # removed: notify_if_recent_restart
-from plugins import *  # 👈 load all plugin files like search.py, misc.py, etc.
+from utils.uptime import daily_uptime_report
 
+# ✅ Manually import all plugin modules to ensure handlers are registered
+from plugins.misc import *
+from plugins.search import *
+from plugins.admin import *
+from plugins.inline import *
+from plugins.connect import *
+from plugins.corrector import *
+from plugins.fsub import *
+from plugins.generate import *
+from plugins.newgroup import *
+from plugins.help import *
+from plugins.speed import *
+from plugins.spell_toggle import *
+from plugins.spell_toggle_cmd import *
+from plugins.verify import *
+
+# 🌐 Flask Web Server
 app = Flask(__name__)
 
 @app.route("/")
@@ -29,12 +45,10 @@ async def start_all():
     await bot.start()
     print("✅ Bot Started Successfully!")
 
-    # ❌ Removed: notify_if_recent_restart(bot)
-
-    # 🕛 Schedule daily uptime
+    # 🕛 Daily uptime log
     asyncio.create_task(daily_uptime_report(bot))
 
-    # 🌐 Start Flask app in background thread
+    # 🌐 Run Flask in background thread
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.daemon = True
     flask_thread.start()
