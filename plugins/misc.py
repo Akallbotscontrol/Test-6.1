@@ -1,3 +1,4 @@
+from utils import script
 from utils import *
 from client import bot
 from plugins.generate import database
