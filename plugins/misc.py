@@ -1,7 +1,10 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from utils import script, get_users, get_groups, add_user
+from utils import script
+from utils.helpers import get_users, get_groups, add_user
 from plugins.generate import database
+
+print("✅ misc.py loaded")
 
 print("✅ misc.py loaded")
 
