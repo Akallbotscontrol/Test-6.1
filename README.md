@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://envs.sh/232.jpg" alt="RMC-POST-SEARCH-BOT Logo">
+  <img src="https://envs.sh/232.jpg" alt="RMC-POST-SEARCH-BOT Logo" width="300">
 </p>
 
 <h1 align="center">
