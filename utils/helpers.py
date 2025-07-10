@@ -1,15 +1,12 @@
 import asyncio
 from config import DATABASE_URI
 from motor.motor_asyncio import AsyncIOMotorClient
-from pyrogram import Client, enums
-from pyrogram.errors import UserNotParticipant, ChatAdminRequired, ChannelInvalid
+from pyrogram import enums
+from pyrogram.errors import UserNotParticipant
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pymongo.errors import DuplicateKeyError
-# utils/helpers.py
 from utils.recent import recent_requests
-# Remove: from plugins.search import recent_requests
 from client import bot
-
 
 # 📦 MongoDB Setup
 dbclient = AsyncIOMotorClient(DATABASE_URI)
@@ -81,32 +78,23 @@ async def get_last_query(user_id, chat_id):
     record = await query_col.find_one({"_id": f"{chat_id}_{user_id}"})
     return record["query"] if record else None
 
-# ✅ Force Subscribe Status Check
+# ✅ Check Subscription Status
 async def is_subscribed(bot, message):
     group = await get_group(message.chat.id)
-    if not group:
-        return True
-
-    fsub_channel = group.get("f_sub")
-    if not fsub_channel:
+    if not group or not group.get("f_sub"):
         return True
 
     try:
-        member = await bot.get_chat_member(fsub_channel, message.from_user.id)
-        if member.status in [
-            enums.ChatMemberStatus.MEMBER,
-            enums.ChatMemberStatus.ADMINISTRATOR,
-            enums.ChatMemberStatus.OWNER
-        ]:
+        member = await bot.get_chat_member(group["f_sub"], message.from_user.id)
+        if member.status in [enums.ChatMemberStatus.MEMBER, enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
             return True
     except UserNotParticipant:
         return False
     except Exception:
         return False
-
     return False
 
-# ➤ Force Subscribe Check & UI reply
+# 🔐 Force Subscribe System
 async def force_sub(bot, message):
     group = await get_group(message.chat.id)
     if not group:
@@ -121,12 +109,7 @@ async def force_sub(bot, message):
     try:
         invite_link = (await bot.get_chat(fsub_channel)).invite_link
         member = await bot.get_chat_member(fsub_channel, message.from_user.id)
-
-        if member.status in [
-            enums.ChatMemberStatus.MEMBER,
-            enums.ChatMemberStatus.ADMINISTRATOR,
-            enums.ChatMemberStatus.OWNER
-        ]:
+        if member.status in [enums.ChatMemberStatus.MEMBER, enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
             return True
     except UserNotParticipant:
         pass
