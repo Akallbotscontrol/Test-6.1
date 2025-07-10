@@ -1,61 +1,66 @@
-from utils import script
-from utils import 
 from pyrogram import Client, filters
-from plugins.generate import database
-from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from pyrogram import filters
+from utils import script, get_users, get_groups, add_user
+from plugins.generate import database
 
-@bot.on_message(filters.private)
-async def echo_test(bot, message):
-    print(f"📩 Message received from {message.from_user.id}: {message.text}")
-    await message.reply("✅ Bot is receiving messages.")
-    
 print("✅ misc.py loaded")
 
+# 🔁 Echo Test: Checks if bot receives messages
+@Client.on_message(filters.private)
+async def echo_test(client, message):
+    print(f"📩 Message received from {message.from_user.id}: {message.text}")
+    await message.reply("✅ Bot is receiving messages.")
 
-@bot.on_message(filters.command("start") & ~filters.channel)
-async def start(bot, message):
-    database.insert_one({"chat_id": message.from_user.id})
-    username = (await bot.get_me()).username
+# 🟢 /start command
+@Client.on_message(filters.command("start") & filters.private)
+async def start_handler(client, message):
+    print("✅ /start received")
+    try:
+        database.insert_one({"chat_id": message.from_user.id})
+    except:
+        pass  # Ignore duplicates
+
+    username = (await client.get_me()).username
     await add_user(message.from_user.id, message.from_user.first_name)
-    button = [[
-        InlineKeyboardButton('➕ ᴀᴅᴅ ᴍᴇ ᴛᴏ ʏᴏᴜʀ ɢʀᴏᴜᴘ ➕', url=f'http://t.me/{username}?startgroup=true')
-    ],[
-        InlineKeyboardButton("ʜᴇʟᴘ", callback_data="misc_help"),
-        InlineKeyboardButton("ᴀʙᴏᴜᴛ", callback_data="misc_about")
-    ],[
-        InlineKeyboardButton("🤖 ᴜᴘᴅᴀᴛᴇ", url="https://t.me/rmcbackup"),
-        InlineKeyboardButton("🔍 ɢʀᴏᴜᴘ", url="https://t.me/rmcmovierequest")
-    ]]
+
+    buttons = [
+        [InlineKeyboardButton("➕ ᴀᴅᴅ ᴍᴇ ᴛᴏ ʏᴏᴜʀ ɢʀᴏᴜᴘ ➕", url=f"https://t.me/{username}?startgroup=true")],
+        [InlineKeyboardButton("ʜᴇʟᴘ", callback_data="misc_help"), InlineKeyboardButton("ᴀʙᴏᴜᴛ", callback_data="misc_about")],
+        [InlineKeyboardButton("🤖 ᴜᴘᴅᴀᴛᴇ", url="https://t.me/rmcbackup"), InlineKeyboardButton("🔍 ɢʀᴏᴜᴘ", url="https://t.me/rmcmovierequest")]
+    ]
+
     await message.reply(
         text=script.START.format(message.from_user.mention),
         disable_web_page_preview=True,
-        reply_markup=InlineKeyboardMarkup(button)
+        reply_markup=InlineKeyboardMarkup(buttons)
     )
 
-@bot.on_message(filters.command("help"))
-async def help(bot, message):
+# ℹ️ /help command
+@Client.on_message(filters.command("help") & filters.private)
+async def help_handler(client, message):
     await message.reply(
         text=script.HELP,
         disable_web_page_preview=True
     )
 
-@bot.on_message(filters.command("about"))
-async def about(bot, message):
+# 🧾 /about command
+@Client.on_message(filters.command("about") & filters.private)
+async def about_handler(client, message):
     await message.reply(
-        text=script.ABOUT.format((await bot.get_me()).mention),
+        text=script.ABOUT.format((await client.get_me()).mention),
         disable_web_page_preview=True
     )
 
-@bot.on_message(filters.command("stats"))
-async def stats(bot, message):
+# 📊 /stats command
+@Client.on_message(filters.command("stats") & filters.private)
+async def stats_handler(client, message):
     g_count, _ = await get_groups()
     u_count, _ = await get_users()
     await message.reply(script.STATS.format(u_count, g_count))
 
-@bot.on_message(filters.command("id"))
-async def id(bot, message):
+# 🆔 /id command
+@Client.on_message(filters.command("id") & filters.private)
+async def id_handler(client, message):
     text = f"Current Chat ID: `{message.chat.id}`\n"
     if message.from_user:
         text += f"Your ID: `{message.from_user.id}`\n"
@@ -68,34 +73,34 @@ async def id(bot, message):
             text += f"Forwarded From Chat ID: `{message.reply_to_message.forward_from_chat.id}`\n"
     await message.reply(text)
 
-@bot.on_callback_query(filters.regex(r"^misc"))
-async def misc(bot, update):
+# 🧷 Callback Query Handler
+@Client.on_callback_query(filters.regex(r"^misc"))
+async def misc_callback_handler(client, update):
     data = update.data.split("_")[-1]
-    username = (await bot.get_me()).username
+    username = (await client.get_me()).username
+
     if data == "home":
-        button = [[
-            InlineKeyboardButton('➕ ᴀᴅᴅ ᴍᴇ ᴛᴏ ʏᴏᴜʀ ɢʀᴏᴜᴘ ➕', url=f'http://t.me/{username}?startgroup=true')
-        ],[
-            InlineKeyboardButton("ʜᴇʟᴘ", callback_data="misc_help"),
-            InlineKeyboardButton("ᴀʙᴏᴜᴛ", callback_data="misc_about")
-        ],[
-            InlineKeyboardButton("🤖 ᴜᴘᴅᴀᴛᴇ", url="https://t.me/rmcbackup"),
-            InlineKeyboardButton("🔍 ɢʀᴏᴜᴘ", url="https://t.me/rmcmovierequest")
-        ]]
-        await update.message.edit(
+        buttons = [
+            [InlineKeyboardButton("➕ ᴀᴅᴅ ᴍᴇ ᴛᴏ ʏᴏᴜʀ ɢʀᴏᴜᴘ ➕", url=f"https://t.me/{username}?startgroup=true")],
+            [InlineKeyboardButton("ʜᴇʟᴘ", callback_data="misc_help"), InlineKeyboardButton("ᴀʙᴏᴜᴛ", callback_data="misc_about")],
+            [InlineKeyboardButton("🤖 ᴜᴘᴅᴀᴛᴇ", url="https://t.me/rmcbackup"), InlineKeyboardButton("🔍 ɢʀᴏᴜᴘ", url="https://t.me/rmcmovierequest")]
+        ]
+        await update.message.edit_text(
             text=script.START.format(update.from_user.mention),
             disable_web_page_preview=True,
-            reply_markup=InlineKeyboardMarkup(button)
+            reply_markup=InlineKeyboardMarkup(buttons)
         )
+
     elif data == "help":
-        await update.message.edit(
+        await update.message.edit_text(
             text=script.HELP,
             disable_web_page_preview=True,
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="misc_home")]])
         )
+
     elif data == "about":
-        await update.message.edit(
-            text=script.ABOUT.format((await bot.get_me()).mention),
+        await update.message.edit_text(
+            text=script.ABOUT.format((await client.get_me()).mention),
             disable_web_page_preview=True,
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="misc_home")]])
         )
