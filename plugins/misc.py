@@ -6,10 +6,8 @@ from plugins.generate import database
 
 print("✅ misc.py loaded")
 
-print("✅ misc.py loaded")
-
-# 🔁 Echo Test: Checks if bot receives messages
-@Client.on_message(filters.private)
+# 🔁 Echo Test: Handle non-command private messages
+@Client.on_message(filters.private & ~filters.command(["start", "help", "about", "stats", "id"]))
 async def echo_test(client, message):
     print(f"📩 Message received from {message.from_user.id}: {message.text}")
     await message.reply("✅ Bot is receiving messages.")
@@ -21,7 +19,7 @@ async def start_handler(client, message):
     try:
         database.insert_one({"chat_id": message.from_user.id})
     except:
-        pass  # Ignore duplicates
+        pass  # Duplicate insert is fine
 
     username = (await client.get_me()).username
     await add_user(message.from_user.id, message.from_user.first_name)
@@ -76,7 +74,7 @@ async def id_handler(client, message):
             text += f"Forwarded From Chat ID: `{message.reply_to_message.forward_from_chat.id}`\n"
     await message.reply(text)
 
-# 🧷 Callback Query Handler
+# 🧷 Callback query handler for buttons
 @Client.on_callback_query(filters.regex(r"^misc"))
 async def misc_callback_handler(client, update):
     data = update.data.split("_")[-1]
@@ -98,12 +96,16 @@ async def misc_callback_handler(client, update):
         await update.message.edit_text(
             text=script.HELP,
             disable_web_page_preview=True,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="misc_home")]])
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Back", callback_data="misc_home")]
+            ])
         )
 
     elif data == "about":
         await update.message.edit_text(
             text=script.ABOUT.format((await client.get_me()).mention),
             disable_web_page_preview=True,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="misc_home")]])
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Back", callback_data="misc_home")]
+            ])
         )
