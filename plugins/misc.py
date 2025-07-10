@@ -4,7 +4,13 @@ from client import bot
 from plugins.generate import database
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram import filters
 
+@bot.on_message(filters.private)
+async def echo_test(bot, message):
+    print(f"📩 Message received from {message.from_user.id}: {message.text}")
+    await message.reply("✅ Bot is receiving messages.")
+    
 print("✅ misc.py loaded")
 
 
