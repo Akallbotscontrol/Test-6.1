@@ -10,13 +10,13 @@ from plugins.search import *
 from plugins.admin import *
 from plugins.inline import *
 from plugins.connect import *
-from plugins.corrector import *
+
 from plugins.fsub import *
 from plugins.generate import *
 from plugins.newgroup import *
 from plugins.help import *
 from plugins.speed import *
-from plugins.spell_toggle import *
+
 from plugins.spell_toggle_cmd import *
 from plugins.verify import *
 
