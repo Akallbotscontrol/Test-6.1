@@ -28,3 +28,6 @@ if __name__ == "__main__":
 
     # Start Bot loop
     asyncio.run(run_bot())
+
+import logging
+logging.basicConfig(level=logging.INFO)
