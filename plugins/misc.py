@@ -1,6 +1,6 @@
 from utils import script
-from utils import *
-from client import bot
+from utils import 
+from pyrogram import Client, filters
 from plugins.generate import database
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
