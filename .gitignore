@@ -1,0 +1,58 @@
+# 🔐 Ignore secret environment files
+.env
+.env.*
+
+# 🧠 Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 📦 Python build system
+build/
+dist/
+*.egg-info/
+
+# 🧪 Virtual environment folders
+venv/
+env/
+.venv/
+.pyenv/
+
+# 💻 System files (Mac & Windows)
+.DS_Store
+Thumbs.db
+
+# 🪵 Log files
+*.log
+
+# ⚙️ Render build cache (if any)
+.cache/
+render.yaml
+
+# 🧪 Test files or temporary scripts
+test_*.py
+temp/
+*.bak
+*.old
+
+# 📸 Image/video/media uploads (if any temporary media saved)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.mp4
+*.webp
+
+# 🗂 Session files (just in case)
+*.session
+*.session-journal
+
+# 📄 SQLite DB (if used temporarily)
+*.sqlite3
+
+# 🧪 Uptime/Debug logs
+logs/
+debug.log
+
+# ❌ Mongo connection strings (if saved)
+mongodb.txt
